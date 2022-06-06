@@ -1,0 +1,66 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+namespace linq_slideviews
+{
+	public class ParsingTask
+	{
+		/// <param name="lines">все строки файла, которые нужно распарсить. Первая строка заголовочная.</param>
+		/// <returns>Словарь: ключ — идентификатор слайда, значение — информация о слайде</returns>
+		/// <remarks>Метод должен пропускать некорректные строки, игнорируя их</remarks>
+		public static IDictionary<int, SlideRecord> ParseSlideRecords(IEnumerable<string> lines)
+		{
+			var result = lines
+				.Skip(1)
+				.Select(x => x.Split(';'))
+				.Select(CreateSlideRecord)
+				.Where(x => x != null)
+				.ToDictionary(x => x.SlideId, x => x);
+			return result;
+		}
+
+		private static SlideRecord CreateSlideRecord(string[] array)
+        {
+			if (array.Length != 3)
+				return null;
+			if (!int.TryParse(array[0], out var id))
+				return null;
+			if(!Enum.TryParse(array[1], true, out SlideType slideType))
+				return null;
+			return new SlideRecord(id, slideType, array[2]);
+        }
+
+		/// <param name="lines">все строки файла, которые нужно распарсить. Первая строка — заголовочная.</param>
+		/// <param name="slides">Словарь информации о слайдах по идентификатору слайда. 
+		/// Такой словарь можно получить методом ParseSlideRecords</param>
+		/// <returns>Список информации о посещениях</returns>
+		/// <exception cref="FormatException">Если среди строк есть некорректные</exception>
+		public static IEnumerable<VisitRecord> ParseVisitRecords(
+			IEnumerable<string> lines, IDictionary<int, SlideRecord> slides)
+		{
+			return lines
+				.Skip(1)
+				.Select(x => CreateVisitRecord(x, slides));
+		}
+
+		private static VisitRecord CreateVisitRecord(string line, IDictionary<int, SlideRecord> slides)
+        {
+			var splitted = line.Split(';');
+            try
+            {
+				var userID = int.Parse(splitted[0]);
+				var slideID = int.Parse(splitted[1]);
+				var date = DateTime.Parse(splitted[2]);
+				var time = TimeSpan.Parse(splitted[3]);
+				var dateTime = date + time;
+				var slideType = slides[slideID].SlideType;
+				return new VisitRecord(userID, slideID, dateTime, slideType);
+            }
+			catch (Exception)
+            {
+				throw new FormatException($"Wrong line [{line}]");
+            }
+        }
+	}
+}

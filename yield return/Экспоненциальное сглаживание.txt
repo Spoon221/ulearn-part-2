@@ -1,0 +1,20 @@
+using System.Collections.Generic;
+
+namespace yield
+{
+	public static class ExpSmoothingTask
+	{
+		public static IEnumerable<DataPoint> SmoothExponentialy(this IEnumerable<DataPoint> data, double alpha)
+		{
+			var result  = double.NaN;
+			foreach (var element in data)
+			{
+				if (double.IsNaN(result ))
+					result  = element.OriginalY;
+				else
+					result  = alpha * element.OriginalY + (1 - alpha) * result ;
+				yield return element.WithExpSmoothedY(result );
+			}
+		}
+	}
+}

@@ -1,0 +1,21 @@
+using System.Collections.Generic;
+
+namespace yield
+{
+    public static class MovingAverageTask
+    {
+        public static IEnumerable<DataPoint> MovingAverage(this IEnumerable<DataPoint> data, int windowWidth)
+        {
+            var sum = 0d;
+            var queue = new Queue<double>();
+            foreach (var dot in data)
+            {
+                if (queue.Count >= windowWidth)
+                    sum -= queue.Dequeue();
+                queue.Enqueue(dot.OriginalY);
+                sum += dot.OriginalY;
+                yield return dot.WithAvgSmoothedY(sum / queue.Count);
+            }
+        }
+    }
+}

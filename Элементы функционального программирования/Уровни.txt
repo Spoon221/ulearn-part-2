@@ -1,0 +1,52 @@
+using System;
+using System.Collections.Generic;
+using System.Drawing;
+
+namespace func_rocket
+{
+    public class LevelsTask
+    {
+        static readonly Physics standardPhysics = new Physics();
+        static readonly Dictionary<string, Gravity> Levels = new Dictionary<string, Gravity>()
+        {
+            {"Zero",  (size, vector) => Vector.Zero},
+            {"Heavy",  (size, vector) => new Vector(0, 0.9)},
+            {"Up",  (size, vector) => new Vector(0, -300 / (size.Height - vector.Y  + 300))},
+            {"WhiteHole",  GetWhiteHoleGravity},
+            {"BlackHole",  GetBlackHoleGravity},
+            {
+                "BlackAndWhite", (size, vector) 
+                => (GetWhiteHoleGravity(size, vector) 
+                + GetBlackHoleGravity(size, vector)) / 2
+            }
+        };
+
+        public static IEnumerable<Level> CreateLevels()
+        {
+            foreach (var level in Levels)
+            {
+                var standardTarget = level.Key != "Up" ? new Vector(600, 200) : new Vector(700, 500);
+                yield return new Level(level.Key,
+                    new Rocket(new Vector(200, 500), Vector.Zero, -0.5 * Math.PI),
+                    standardTarget,
+                    level.Value,
+                    standardPhysics);
+            }
+        }
+
+        public static Vector GetWhiteHoleGravity(Size spaceSize, Vector location)
+        {
+            var distance = new Vector(location.X - 600, location.Y - 200);
+            return distance.Normalize() * distance.Length * 140 /
+                  (distance.Length * distance.Length + 1);
+        }
+
+        public static Vector GetBlackHoleGravity(Size spaceSize, Vector location)
+        {
+            var position = new Vector(600 + 200, 200 + 500) / 2;
+            var distance = position - location;
+            return new Vector(position.X - location.X, position.Y - location.Y).Normalize() *
+                     300 * distance.Length / (distance.Length * distance.Length + 1);
+        }
+    }
+}

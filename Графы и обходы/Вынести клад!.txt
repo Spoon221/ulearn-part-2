@@ -1,0 +1,53 @@
+using System;
+using System.Collections.Generic;
+using System.Drawing;
+using System.Linq;
+
+namespace Dungeon
+{
+	public class DungeonTask
+	{
+		public static MoveDirection[] FindShortestPath(Map map)
+		{
+            var pathToExit = BfsTask.FindPaths(map, map.InitialPosition, new[] { map.Exit })
+                                    .FirstOrDefault();
+            var pathsToChests = BfsTask.FindPaths(map, map.InitialPosition, map.Chests);
+
+            if (pathToExit == null) return new MoveDirection[0];
+            if (!pathsToChests.Any() || map.Chests.Any(chest => pathToExit.ToList().Contains(chest)))
+                return GetMoveDirections(pathToExit.Reverse().Select(point => point)).ToArray();
+
+            var pathsFromExitToChests = BfsTask.FindPaths(map, map.Exit, map.Chests);
+            var joinedPaths = JoinPaths(pathsToChests, pathsFromExitToChests);
+            var bestPath = FindBestPath(joinedPaths);
+
+            return GetMoveDirections(bestPath).ToArray();
+        }
+
+        private static IEnumerable<Tuple<IEnumerable<Point>, IEnumerable<Point>>> 
+			JoinPaths(IEnumerable<SinglyLinkedList<Point>> firstPart,
+					  IEnumerable<SinglyLinkedList<Point>> secondPart)
+        {
+            return firstPart.Join(secondPart, e => e.Value, o => o.Value,
+                                (o, i) => Tuple.Create(o.Reverse(), i.Skip(1)));
+        }
+
+        private static IEnumerable<Point> FindBestPath(IEnumerable<Tuple<IEnumerable<Point>, IEnumerable<Point>>> paths)
+        {
+            return paths.Select(path => path.Item1.Concat(path.Item2))
+                        .OrderBy(x => x.Count())
+                        .First();
+        }
+
+        private static IEnumerable<MoveDirection> GetMoveDirections(IEnumerable<Point> points)
+        {
+            var prevPoint = points.First();
+            foreach (var point in points.Skip(1))
+            {
+                yield return Walker.ConvertOffsetToDirection(
+                                 new Size(point.X - prevPoint.X, point.Y - prevPoint.Y));
+                prevPoint = point;
+            }
+        }
+    }
+}

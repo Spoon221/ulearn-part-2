@@ -1,0 +1,59 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
+
+namespace hashes
+{
+    public class ReadonlyBytes : IEnumerable<byte>
+    {
+        private byte[] collection;
+        private int hash;
+
+        public ReadonlyBytes(params byte[] bytes)
+        {
+            this.collection = bytes 
+                ?? throw new ArgumentNullException(nameof(bytes));
+            hash = CalculateHash();
+        }
+
+        public int Length => collection.Length;
+
+        public byte this[int index] => collection[index];
+
+        public IEnumerator<byte> GetEnumerator()
+        {
+            foreach (var element in collection)
+                yield return element;
+        }
+
+        IEnumerator IEnumerable.GetEnumerator() => throw new NotImplementedException();
+
+        public override string ToString() => $"[{string.Join(", ", collection)}]";
+
+        public override bool Equals(object bytes) => ReferenceEquals(this, bytes)
+                || !(bytes is null) && bytes.GetType() == GetType()
+                && Equals((ReadonlyBytes)bytes);
+
+        private bool Equals(ReadonlyBytes bytes)
+        {
+            if (bytes.Length != Length)
+                return false;
+            if (GetHashCode() != bytes.GetHashCode())
+                return false;
+            for (var i = 0; i < Length; i++)
+                if (this.collection[i] != bytes[i])
+                    return false;
+            return true;
+        }
+
+        public override int GetHashCode() => hash;
+
+        private int CalculateHash()
+        {
+            var hash = 24214217;
+            foreach (var element in collection)
+                hash = unchecked((element + hash) * 999999);
+            return hash;
+        }
+    }
+}
